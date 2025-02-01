@@ -147,7 +147,7 @@ function debounce(func, wait) {
 const style = document.createElement('style');
 style.textContent = `
   .timestamp-tooltip {
-    position: absolute;
+    position: fixed;
     background: #232f3e;
     color: white;
     padding: 8px 12px;
@@ -160,6 +160,7 @@ style.textContent = `
     opacity: 0;
     transition: opacity 0.1s;
     box-shadow: 0 2px 8px rgba(0,0,0,0.2);
+    width: 300px;
   }
   .timestamp-tooltip.visible {
     opacity: 1;
@@ -174,10 +175,45 @@ document.body.appendChild(tooltip);
 
 function showTooltip(element, content) {
   const rect = element.getBoundingClientRect();
+  const windowWidth = window.innerWidth;
+  const windowHeight = window.innerHeight;
+  
   tooltip.innerHTML = content;
-  tooltip.style.left = `${rect.left}px`;
-  tooltip.style.top = `${rect.bottom + 5}px`;
+  
+  // Make tooltip temporarily visible to get its dimensions
+  tooltip.style.visibility = 'hidden';
   tooltip.classList.add('visible');
+  
+  const tooltipRect = tooltip.getBoundingClientRect();
+  
+  // Horizontal positioning
+  if (rect.left + tooltipRect.width + 10 > windowWidth) {
+    // Not enough space on the right, try positioning to the left
+    if (rect.left - tooltipRect.width - 10 > 0) {
+      // Enough space on the left
+      tooltip.style.left = `${rect.left - tooltipRect.width - 10}px`;
+    } else {
+      // Not enough space on either side, center it horizontally
+      tooltip.style.left = '10px';
+      tooltip.style.width = `${windowWidth - 20}px`;
+    }
+  } else {
+    // Default positioning to the right
+    tooltip.style.left = `${rect.left}px`;
+    tooltip.style.width = '300px';  // Reset width to default
+  }
+  
+  // Vertical positioning
+  if (rect.bottom + tooltipRect.height + 5 > windowHeight) {
+    // Not enough space below, position above
+    tooltip.style.top = `${rect.top - tooltipRect.height - 5}px`;
+  } else {
+    // Default positioning below
+    tooltip.style.top = `${rect.bottom + 5}px`;
+  }
+  
+  // Make tooltip visible again
+  tooltip.style.visibility = 'visible';
 }
 
 function hideTooltip() {
