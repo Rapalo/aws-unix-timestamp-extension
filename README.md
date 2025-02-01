@@ -22,7 +22,7 @@ A browser extension that makes working with Unix timestamps in AWS Console easie
 
 1. Clone this repository:
 ```bash
-git clone https://github.com/yourusername/aws-unix-time-helper.git
+git clone https://github.com/Rapalo/aws-unix-timestamp-extension
 ```
 
 2. Install dependencies:
