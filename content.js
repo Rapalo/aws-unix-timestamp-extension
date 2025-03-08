@@ -184,9 +184,12 @@ chrome.runtime.onMessage.addListener((message, sender, sendResponse) => {
         }
       });
     }
+    
+    // Send a response to close the message channel properly
+    sendResponse({ success: true });
   }
-  
-  return true;
+  // Return false to indicate we're not sending an asynchronous response
+  return false;
 });
 
 // Change to async function and await the formatDateTime calls

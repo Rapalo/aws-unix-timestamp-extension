@@ -104,6 +104,5 @@ document.addEventListener('DOMContentLoaded', function() {
 
   // Initialize values
   timestampConverter.setCurrentTimestamp();
-  dateConverter.setCurrentDatetime();
   settingsManager.loadSettings();
 }); 

@@ -6,7 +6,8 @@ export function getDateSettings() {
   return new Promise((resolve) => {
     chrome.storage.sync.get({
       dateFormat: 'default',
-      timestampFormat: 'seconds'
+      timestampFormat: 'seconds',
+      useUtcTime: false
     }, (settings) => {
       resolve(settings);
     });
@@ -28,13 +29,16 @@ export async function getCachedSettings() {
     chrome.storage.onChanged.addListener((changes, areaName) => {
       if (areaName !== 'sync') return;
       
-      if (changes.dateFormat || changes.timestampFormat) {
+      if (changes.dateFormat || changes.timestampFormat || changes.useUtcTime) {
         // Update cached settings
         if (changes.dateFormat) {
           cachedSettings.dateFormat = changes.dateFormat.newValue;
         }
         if (changes.timestampFormat) {
           cachedSettings.timestampFormat = changes.timestampFormat.newValue;
+        }
+        if (changes.useUtcTime) {
+          cachedSettings.useUtcTime = changes.useUtcTime.newValue;
         }
       }
     });
@@ -47,6 +51,9 @@ export async function getCachedSettings() {
         }
         if (event.detail.timestampFormat) {
           cachedSettings.timestampFormat = event.detail.timestampFormat;
+        }
+        if (event.detail.useUtcTime !== undefined) {
+          cachedSettings.useUtcTime = event.detail.useUtcTime;
         }
       }
     });

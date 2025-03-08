@@ -30,6 +30,13 @@ export class DateConverter {
         this.timestampFormat = event.detail.timestampFormat;
       }
       
+      // Update timezone toggle if it changed in settings
+      if (event.detail.useUtcTime !== undefined && 
+          this.timezoneToggle.checked !== event.detail.useUtcTime) {
+        this.timezoneToggle.checked = event.detail.useUtcTime;
+        this.updateHelperText();
+      }
+      
       if (this.datetimeInput.value) {
         this.updateTimestamp();
       }
@@ -49,11 +56,32 @@ export class DateConverter {
       // Update the displayed timestamp with the new format
       this.updateTimestamp();
     }
+    
+    // Update timezone toggle if it changed in storage
+    if (changes.useUtcTime) {
+      // Only update if the value is different to avoid infinite loops
+      if (this.timezoneToggle.checked !== changes.useUtcTime.newValue) {
+        this.timezoneToggle.checked = changes.useUtcTime.newValue;
+        this.updateHelperText();
+        this.handleTimezoneToggle();
+      }
+    }
   }
 
   async loadSettings() {
     const settings = await getDateSettings();
     this.timestampFormat = settings.timestampFormat;
+    
+    // Load the UTC time toggle state
+    chrome.storage.sync.get({ useUtcTime: false }, (result) => {
+      // Set the toggle state
+      this.timezoneToggle.checked = result.useUtcTime;
+      this.updateHelperText();
+      
+      // Always set the current datetime with the correct timezone setting
+      // This ensures the datetime input is always in the correct timezone format
+      this.setCurrentDatetime();
+    });
   }
 
   updateHelperText() {
@@ -102,6 +130,7 @@ export class DateConverter {
   }
 
   setCurrentDatetime() {
+    // Get the current datetime in the correct timezone format
     this.datetimeInput.value = getCurrentDateTime(this.timezoneToggle.checked);
     this.updateTimestamp();
   }
@@ -109,12 +138,17 @@ export class DateConverter {
   handleTimezoneToggle() {
     this.updateHelperText();
     
+    // Save the toggle state to chrome.storage
+    chrome.storage.sync.set({ useUtcTime: this.timezoneToggle.checked });
+    
     const currentValue = this.datetimeInput.value;
     if (currentValue) {
       if (this.timezoneToggle.checked) {
+        // Convert from local to UTC
         const localDate = new Date(currentValue);
         this.datetimeInput.value = convertDateTime(localDate, true);
       } else {
+        // Convert from UTC to local
         const [datePart, timePart] = currentValue.split('T');
         const [year, month, day] = datePart.split('-');
         const [hours, minutes] = timePart.split(':');
@@ -130,6 +164,9 @@ export class DateConverter {
         this.datetimeInput.value = `${localYear}-${localMonth}-${localDay}T${localHours}:${localMinutes}`;
       }
       this.updateTimestamp();
+    } else {
+      // If no current value, set to current datetime in the correct timezone
+      this.setCurrentDatetime();
     }
   }
 } 

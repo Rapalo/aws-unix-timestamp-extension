@@ -13,7 +13,8 @@ export class SettingsManager {
       dateFormat: 'default',
       timestampFormat: 'seconds',
       detectTimestamps: true,
-      showTooltipInEditMode: true
+      showTooltipInEditMode: true,
+      useUtcTime: false
     };
     
     // Create a custom event for settings changes
@@ -53,19 +54,23 @@ export class SettingsManager {
    * Save settings to chrome.storage
    */
   saveSettings() {
-    const settings = {
-      dateFormat: this.dateFormatSelect.value,
-      timestampFormat: this.timestampFormatSelect.value,
-      detectTimestamps: this.detectTimestampsToggle.checked,
-      showTooltipInEditMode: this.showTooltipInEditModeToggle ? this.showTooltipInEditModeToggle.checked : true
-    };
-    
-    chrome.storage.sync.set(settings, () => {
-      // Broadcast settings change to content scripts
-      this.broadcastSettingsChange(settings);
+    // First get the current useUtcTime value to preserve it
+    chrome.storage.sync.get({ useUtcTime: false }, (result) => {
+      const settings = {
+        dateFormat: this.dateFormatSelect.value,
+        timestampFormat: this.timestampFormatSelect.value,
+        detectTimestamps: this.detectTimestampsToggle.checked,
+        showTooltipInEditMode: this.showTooltipInEditModeToggle ? this.showTooltipInEditModeToggle.checked : true,
+        useUtcTime: result.useUtcTime // Preserve the UTC Time toggle state
+      };
       
-      // Dispatch custom event for real-time updates in the popup
-      document.dispatchEvent(new CustomEvent('settingsChanged', { detail: settings }));
+      chrome.storage.sync.set(settings, () => {
+        // Broadcast settings change to content scripts
+        this.broadcastSettingsChange(settings);
+        
+        // Dispatch custom event for real-time updates in the popup
+        document.dispatchEvent(new CustomEvent('settingsChanged', { detail: settings }));
+      });
     });
   }
 
@@ -76,11 +81,22 @@ export class SettingsManager {
   broadcastSettingsChange(settings) {
     chrome.tabs.query({}, (tabs) => {
       tabs.forEach(tab => {
-        if (tab.url && tab.url.includes('console.aws.amazon.com')) {
-          chrome.tabs.sendMessage(tab.id, {
-            action: 'settingsUpdated',
-            settings: settings
-          });
+        try {
+          // Only send messages to AWS console tabs and check if tab is still available
+          if (tab.url && tab.url.includes('console.aws.amazon.com')) {
+            // Use a non-returning sendMessage to avoid the "message channel closed" error
+            chrome.tabs.sendMessage(tab.id, {
+              action: 'settingsUpdated',
+              settings: settings
+            }, () => {
+              // Ignore any response or error
+              const lastError = chrome.runtime.lastError;
+              // We're just suppressing the error by checking lastError
+            });
+          }
+        } catch (error) {
+          // Silently catch any errors that might occur during message sending
+          console.log('Error sending message to tab:', error);
         }
       });
     });
