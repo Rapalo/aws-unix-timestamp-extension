@@ -2,8 +2,7 @@
 
 A browser extension that makes working with Unix timestamps in AWS Console easier. It provides both a popup interface for timestamp conversions and automatic timestamp formatting in AWS DynamoDB tables.
 
-![image](https://github.com/user-attachments/assets/1d16d41c-4a57-4c68-8b66-d0b8aab5b6bd)
-
+![image](https://github.com/user-attachments/assets/54508756-bd6e-46f6-bd07-1b9df709e9ff)
 ## Features
 
 ### Popup Interface
