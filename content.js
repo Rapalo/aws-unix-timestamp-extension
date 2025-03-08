@@ -1,3 +1,5 @@
+import { formatDateTime, getTimezoneName } from './js/utils/dateUtils.js';
+
 // Inline the flag utils functionality
 const FLAG_BASE_URL = 'http://purecatamphetamine.github.io/country-flag-icons/3x2/';
 
@@ -100,34 +102,66 @@ function getLocaleFlag() {
   }
 }
 
-function convertTimestampToDate(timestamp) {
+// User settings with defaults
+let userSettings = {
+  dateFormat: 'default',
+  timestampFormat: 'seconds',
+  detectTimestamps: true
+};
+
+// Load settings when script initializes
+function loadSettings() {
+  chrome.storage.sync.get({
+    dateFormat: 'default',
+    timestampFormat: 'seconds',
+    detectTimestamps: true
+  }, (settings) => {
+    userSettings = settings;
+    
+    // Only run the enhancement if auto-detection is enabled
+    if (userSettings.detectTimestamps) {
+      enhanceDynamoDBTable();
+      setupMutationObserver();
+    } else if (window.timestampObserver) {
+      window.timestampObserver.disconnect();
+      window.timestampObserver = null;
+    }
+  });
+}
+
+// Listen for settings updates from the popup
+chrome.runtime.onMessage.addListener((message, sender, sendResponse) => {
+  if (message.action === 'settingsUpdated') {
+    const oldDetectTimestamps = userSettings.detectTimestamps;
+    userSettings = message.settings;
+    
+    // Apply settings changes immediately
+    if (userSettings.detectTimestamps) {
+      enhanceDynamoDBTable();
+      
+      // If detection was previously disabled, set up the observer again
+      if (!oldDetectTimestamps) {
+        setupMutationObserver();
+      }
+    } else if (oldDetectTimestamps && window.timestampObserver) {
+      window.timestampObserver.disconnect();
+      window.timestampObserver = null;
+    }
+  }
+  
+  return true;
+});
+
+// Change to async function and await the formatDateTime calls
+async function convertTimestampToDate(timestamp) {
   const date = new Date(timestamp * 1000);
   const flagHtml = getLocaleFlag();
-  
-  const utcDate = date.toLocaleString('en-US', {
-    timeZone: 'UTC',
-    month: 'long',
-    day: 'numeric',
-    year: 'numeric',
-    hour: '2-digit',
-    minute: '2-digit',
-    second: '2-digit',
-    hour12: false,
-    timeZoneName: 'short'
-  });
+  const timezoneName = getTimezoneName();
 
-  const localDate = date.toLocaleString('en-US', {
-    month: 'long',
-    day: 'numeric',
-    year: 'numeric',
-    hour: '2-digit',
-    minute: '2-digit',
-    second: '2-digit',
-    hour12: false,
-    timeZoneName: 'longOffset'
-  });
+  const utcDate = await formatDateTime(date, true, userSettings.dateFormat);
+  const localDate = await formatDateTime(date, false, userSettings.dateFormat);
 
-  return `<strong>🌐 UTC</strong>\n${utcDate}\n\n<strong>${flagHtml} Local</strong>\n${localDate}`;
+  return `<strong>🌐 UTC</strong>\n${utcDate}\n\n<strong>${flagHtml} Local: ${timezoneName}</strong>\n${localDate}`;
 }
 
 // Debounce function
@@ -225,33 +259,56 @@ function enhanceDynamoDBTable() {
   
   elements.forEach(element => {
     const text = element.textContent.trim();
-    if (/^\d{10}$/.test(text) || /^\d{13}$/.test(text)) {
-      const timestamp = /^\d{13}$/.test(text) ? Math.floor(parseInt(text) / 1000) : parseInt(text);
-      const date = convertTimestampToDate(timestamp);
-      
-      element.setAttribute('data-timestamp-processed', 'true');
-      element.setAttribute('data-timestamp-content', date);
-      element.style.textDecoration = 'underline dotted';
-      element.style.cursor = 'help';
-
-      // Add mouse events for custom tooltip
-      element.addEventListener('mouseenter', () => {
-        showTooltip(element, element.getAttribute('data-timestamp-content'));
+    
+    // Check for timestamps in the format specified by user settings
+    let timestamp = null;
+    
+    if (/^\d{10}$/.test(text)) {
+      // 10-digit (seconds) timestamp
+      timestamp = parseInt(text);
+    } else if (/^\d{13}$/.test(text)) {
+      // 13-digit (milliseconds) timestamp
+      timestamp = Math.floor(parseInt(text) / 1000);
+    }
+    
+    if (timestamp !== null) {
+      // Await the Promise returned by convertTimestampToDate
+      convertTimestampToDate(timestamp).then(date => {
+        element.setAttribute('data-timestamp-processed', 'true');
+        element.setAttribute('data-timestamp-content', date);
+        element.style.textDecoration = 'underline dotted';
+        element.style.cursor = 'help';
+        
+        // Add event listeners for tooltip
+        element.addEventListener('mouseenter', () => {
+          showTooltip(element, element.getAttribute('data-timestamp-content'));
+        });
+        
+        element.addEventListener('mouseleave', hideTooltip);
       });
-      
-      element.addEventListener('mouseleave', hideTooltip);
     }
   });
 }
 
-// Run the enhancement when the page loads
-enhanceDynamoDBTable();
+// Setup mutation observer to detect DOM changes
+function setupMutationObserver() {
+  // Disconnect any existing observer
+  if (window.timestampObserver) {
+    window.timestampObserver.disconnect();
+  }
+  
+  // Create a MutationObserver with debouncing
+  const debouncedEnhance = debounce(enhanceDynamoDBTable, 50);
+  
+  window.timestampObserver = new MutationObserver(debouncedEnhance);
+  
+  // Observe only the main content area if possible
+  const targetNode = document.querySelector('#console-main-content') || document.body;
+  window.timestampObserver.observe(targetNode, { 
+    childList: true, 
+    subtree: true 
+  });
+}
 
-// Create a MutationObserver with debouncing
-const debouncedEnhance = debounce(enhanceDynamoDBTable, 50);
-
-const observer = new MutationObserver(debouncedEnhance);
-
-// Observe only the main content area if possible
-const targetNode = document.querySelector('#console-main-content') || document.body;
-observer.observe(targetNode, { childList: true, subtree: true }); 
+// Initialize the script
+loadSettings(); 

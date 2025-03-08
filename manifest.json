@@ -5,7 +5,8 @@
   "description": "Convert Unix timestamps to readable dates in AWS Console",
   "permissions": [
     "activeTab",
-    "scripting"
+    "scripting",
+    "storage"
   ],
   "action": {
     "default_popup": "popup.html",

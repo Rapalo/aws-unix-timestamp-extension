@@ -1,8 +1,9 @@
 import { TimestampConverter } from './components/timestampConverter.js';
 import { DateConverter } from './components/dateConverter.js';
+import { SettingsManager } from './components/settingsManager.js';
 
 document.addEventListener('DOMContentLoaded', function() {
-  // Get DOM elements
+  // Get DOM elements for tools
   const elements = {
     timestampInput: document.getElementById('timestamp'),
     dateResult: document.getElementById('dateResult'),
@@ -15,11 +16,41 @@ document.addEventListener('DOMContentLoaded', function() {
     refreshDatetime: document.getElementById('refreshDatetime')
   };
 
+  // Get DOM elements for settings
+  const settingsElements = {
+    dateFormat: document.getElementById('dateFormat'),
+    timestampFormat: document.getElementById('timestampFormat'),
+    detectTimestampsToggle: document.getElementById('detectTimestampsToggle')
+  };
+
+  // Get DOM elements for tabs
+  const tabs = document.querySelectorAll('.tab');
+  const tabContents = document.querySelectorAll('.tab-content');
+
   // Validate elements
   if (Object.values(elements).some(el => !el)) {
-    console.error('Required DOM elements not found');
+    console.error('Required tool DOM elements not found');
     return;
   }
+
+  if (Object.values(settingsElements).some(el => !el)) {
+    console.error('Required settings DOM elements not found');
+    return;
+  }
+
+  // Initialize tab functionality
+  tabs.forEach(tab => {
+    tab.addEventListener('click', () => {
+      // Remove active class from all tabs and contents
+      tabs.forEach(t => t.classList.remove('active'));
+      tabContents.forEach(c => c.classList.remove('active'));
+      
+      // Add active class to clicked tab and corresponding content
+      const tabName = tab.getAttribute('data-tab');
+      tab.classList.add('active');
+      document.getElementById(tabName).classList.add('active');
+    });
+  });
 
   // Initialize components
   const timestampConverter = new TimestampConverter(
@@ -35,7 +66,14 @@ document.addEventListener('DOMContentLoaded', function() {
     elements.helperText
   );
 
-  // Set up event listeners
+  const settingsManager = new SettingsManager(
+    settingsElements.dateFormat,
+    settingsElements.timestampFormat,
+    settingsElements.detectTimestampsToggle,
+    null // No save button needed
+  );
+
+  // Set up event listeners for tools
   elements.refreshTimestamp.addEventListener('click', () => 
     timestampConverter.setCurrentTimestamp());
   
@@ -65,4 +103,5 @@ document.addEventListener('DOMContentLoaded', function() {
   // Initialize values
   timestampConverter.setCurrentTimestamp();
   dateConverter.setCurrentDatetime();
+  settingsManager.loadSettings();
 }); 

@@ -1,0 +1,70 @@
+/* UI Components styles */
+.header-container {
+  display: flex;
+  justify-content: space-between;
+  align-items: flex-start;
+  margin-bottom: 12px;
+}
+
+.refresh-button {
+  color: none;
+  background: none;
+  cursor: pointer;
+  padding: 0px;
+  margin: 0px;
+  margin-top: 2px;
+  width: 16px;
+  height: 16px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  transition: transform 0.2s;
+}
+
+.refresh-button:hover {
+  background: none;
+  transform: rotate(-180deg);
+}
+
+.refresh-button img {
+  width: 16px;
+  height: 16px;
+  filter: brightness(0) saturate(100%) invert(80%);
+}
+
+/* Settings styles */
+.setting-item {
+  margin-top: 12px;
+  margin-bottom: 0px;
+}
+
+.setting-label {
+  display: block;
+  margin-top: 8px;
+  font-size: 14px;
+  font-weight: 500;
+  color: #232f3e;
+}
+
+.setting-description {
+  font-size: 12px;
+  color: #666;
+  margin-bottom: 8px;
+}
+
+.setting-description:last-child {
+  margin-bottom: 0;
+}
+
+.setting-description strong {
+  font-weight: 500;
+  color: hsl(213, 20%, 30%);
+}
+
+select {
+  width: 100%;
+  padding: 8px;
+  border-radius: 4px;
+  border: 1px solid #ccc;
+  background-color: white;
+} 

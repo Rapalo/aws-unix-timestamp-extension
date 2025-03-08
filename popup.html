@@ -3,181 +3,99 @@
 <head>
   <meta charset="UTF-8">
   <title>AWS Unix Time Helper</title>
-  <style>
-    body {
-      width: 350px;
-      padding: 16px;
-      padding-top: 4px;
-      font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Oxygen, Ubuntu, sans-serif;
-      background-color: #e3e5e7;
-      margin: 0;
-      border-radius: 4px;
-      /* min-height: fit-content; */
-      overflow: hidden;
-    }
-    .container {
-      background-color: white;
-      padding: 12px;
-      border-radius: 4px;
-      margin-top: 12px;
-      box-shadow: 0 2px 4px rgba(0,0,0,0.1);
-    }
-    h3 {
-      margin-top: 0;
-      margin-bottom: 0;
-      color: #232f3e;
-      font-size: 16px;
-    }
-    input, button {
-      margin: 5px 0;
-      padding: 8px;
-      border-radius: 4px;
-      border: 1px solid #ccc;
-    }
-    input {
-      width: 100%;
-      box-sizing: border-box;
-    }
-    button {
-      background-color: #232f3e;
-      color: white;
-      border: none;
-      cursor: pointer;
-      width: 100%;
-      font-weight: 500;
-      transition: background-color 0.2s;
-    }
-    button:hover {
-      background-color: #1a2532;
-    }
-    .result {
-      margin-top: 10px;
-      padding: 8px;
-      background-color: #f1f3f5;
-      border-radius: 4px;
-      font-family: monospace;
-      font-size: 13px;
-      white-space: pre-line;
-    }
-    .result:empty {
-      display: none;
-    }
-    .helper-text {
-      font-size: 12px;
-      color: #666;
-      margin: 2px 0 8px 0;
-      font-style: italic;
-    }
-    .timezone-toggle {
-      display: flex;
-      align-items: center;
-      margin-bottom: 10px;
-    }
-    .toggle-label {
-      margin-left: 8px;
-      font-size: 14px;
-      color: #232f3e;
-    }
-    .switch {
-      position: relative;
-      display: inline-block;
-      width: 44px;
-      height: 24px;
-    }
-    .switch input {
-      opacity: 0;
-      width: 0;
-      height: 0;
-    }
-    .slider {
-      position: absolute;
-      cursor: pointer;
-      top: 0;
-      left: 0;
-      right: 0;
-      bottom: 0;
-      background-color: #ccc;
-      transition: .2s;
-      border-radius: 24px;
-    }
-    .slider:before {
-      position: absolute;
-      content: "";
-      height: 18px;
-      width: 18px;
-      left: 3px;
-      bottom: 3px;
-      background-color: white;
-      transition: .2s;
-      border-radius: 50%;
-    }
-    input:checked + .slider {
-      background-color: #232f3e;
-    }
-    input:checked + .slider:before {
-      transform: translateX(20px);
-    }
-    .header-container {
-      display: flex;
-      justify-content: space-between;
-      align-items: flex-start;
-      margin-bottom: 12px;
-    }
-    .refresh-button {
-      color: none;
-      background: none;
-      cursor: pointer;
-      padding: 0px;
-      margin: 0px;
-      margin-top: 2px;
-      width: 16px;
-      height: 16px;
-      display: flex;
-      align-items: center;
-      justify-content: center;
-      transition: transform 0.2s;
-    }
-    .refresh-button:hover {
-      background: none;
-      transform: rotate(-180deg);
-    }
-    .refresh-button img {
-      width: 16px;
-      height: 16px;
-      filter: brightness(0) saturate(100%) invert(80%);
-    }
-  </style>
+  <link rel="stylesheet" href="dist/popup.css">
 </head>
 <body>
-  <div class="container">
-    <div class="header-container">
-      <h3>Unix Timestamp to Date</h3>
-      <button class="refresh-button" id="refreshTimestamp" title="Set to current time">
-        <img src="images/RefreshIcon.svg" alt="Refresh">
-      </button>
+  <div class="main-content">
+    <div class="tabs">
+      <div class="tab active" data-tab="tools">
+        <img src="images/ToolsIcon.svg" alt="Tools" width="16px" height="16px">
+        Tools
+      </div>
+      <div class="tab" data-tab="settings">
+        <img src="images/SettingsIcon.svg" alt="Settings" width="16px" height="16px">
+        Settings
+      </div>
     </div>
-    <input type="number" id="timestamp" placeholder="Enter Unix timestamp">
-    <div id="dateResult" class="result"></div>
-  </div>
 
-  <div class="container">
-    <div class="header-container">
-      <h3>Date to Unix Timestamp</h3>
-      <button class="refresh-button" id="refreshDatetime" title="Set to current time">
-        <img src="images/RefreshIcon.svg" alt="Refresh">
-      </button>
+    <div id="tools" class="tab-content active">
+      <div class="container">
+        <div class="header-container">
+          <h3>Unix Timestamp to Date</h3>
+          <button class="refresh-button" id="refreshTimestamp" title="Set to current time">
+            <img src="images/RefreshIcon.svg" alt="Refresh">
+          </button>
+        </div>
+        <input type="number" id="timestamp" placeholder="Enter Unix timestamp">
+        <div id="dateResult" class="result"></div>
+      </div>
+
+      <div class="container">
+        <div class="header-container">
+          <h3>Date to Unix Timestamp</h3>
+          <button class="refresh-button" id="refreshDatetime" title="Set to current time">
+            <img src="images/RefreshIcon.svg" alt="Refresh">
+          </button>
+        </div>
+        <div class="timezone-toggle">
+          <label class="switch">
+            <input type="checkbox" id="timezoneToggle">
+            <span class="slider round"></span>
+          </label>
+          <span class="toggle-label">UTC Time</span>
+        </div>
+        <input type="datetime-local" id="datetime">
+        <div class="helper-text">Time is in your local timezone</div>
+        <button id="convertDate">Copy Timestamp</button>
+        <div id="timestampResult" class="result"></div>
+      </div>
     </div>
-    <div class="timezone-toggle">
-      <label class="switch">
-        <input type="checkbox" id="timezoneToggle">
-        <span class="slider round"></span>
-      </label>
-      <span class="toggle-label">UTC Time</span>
+
+    <div id="settings" class="tab-content">
+      <div class="container">
+        <h3>Features</h3>
+        <div class="setting-description" style="margin-bottom: 16px;">Enable or disable extension features</div>
+        
+        <div class="setting-item">
+          <div class="timezone-toggle">
+            <label class="switch">
+              <input type="checkbox" id="detectTimestampsToggle">
+              <span class="slider round"></span>
+            </label>
+            <span class="toggle-label">Auto-detect timestamps in AWS Console</span>
+          </div>
+          <div class="setting-description">When enabled, this extension automatically detects Unix timestamps in the <strong>AWS DynamoDB Console</strong> and displays the converted date and time when you hover over them.</div>
+        </div>
+      </div>
+      
+      <div class="container">
+        <h3>Display Settings</h3>
+        
+        <div class="setting-item">
+          <label class="setting-label" for="dateFormat">Date Format</label>
+          <div class="setting-description">Choose how dates are displayed throughout the extension</div>
+          <select id="dateFormat">
+            <option value="default">Default (Jan 01, 2023 12:00:00 PM)</option>
+            <option value="iso">ISO (2023-01-01T12:00:00)</option>
+            <option value="short">Short (01/01/2023 12:00 PM)</option>
+            <option value="long">Long (Monday, January 1, 2023 12:00:00 PM)</option>
+          </select>
+        </div>
+        
+        <div class="setting-item">
+          <label class="setting-label" for="timestampFormat">Default Timestamp Format</label>
+          <div class="setting-description">Format to use when displaying timestamps</div>
+          <select id="timestampFormat">
+            <option value="seconds">Seconds (10-digit)</option>
+            <option value="milliseconds">Milliseconds (13-digit)</option>
+          </select>
+        </div>
+        
+      </div>
+
+      <div class="setting-description" style="margin: 0 auto; text-align: center;">Settings are automatically saved when changed. You need to refresh the page to see the changes.</div>
+      
     </div>
-    <input type="datetime-local" id="datetime">
-    <div class="helper-text">Time is in your local timezone</div>
-    <button id="convertDate">Copy Timestamp</button>
-    <div id="timestampResult" class="result"></div>
   </div>
 
   <script src="dist/popup.bundle.js"></script>

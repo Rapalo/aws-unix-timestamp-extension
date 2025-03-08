@@ -1,4 +1,4 @@
-import { formatDateTime, convertDateTime, getCurrentDateTime } from '../utils/dateUtils.js';
+import { formatDateTime, convertDateTime, getCurrentDateTime, getDateSettings, getTimezoneName } from '../utils/dateUtils.js';
 import { getLocaleFlag } from '../utils/timezoneUtils.js';
 
 export class DateConverter {
@@ -8,6 +8,52 @@ export class DateConverter {
     this.convertButton = convertButton;
     this.timezoneToggle = timezoneToggle;
     this.helperText = helperText;
+    this.timestampFormat = 'seconds'; // Default format, will be updated by loadSettings
+    
+    // Load user settings
+    this.loadSettings();
+    
+    // Listen for storage changes to update settings in real-time
+    chrome.storage.onChanged.addListener(this.handleSettingsChange.bind(this));
+    
+    // Listen for custom settings changed event for real-time updates
+    document.addEventListener('settingsChanged', this.handleSettingsChangedEvent.bind(this));
+  }
+
+  /**
+   * Handle custom settings changed event
+   * @param {CustomEvent} event - The settings changed event
+   */
+  handleSettingsChangedEvent(event) {
+    if (event.detail) {
+      if (event.detail.timestampFormat) {
+        this.timestampFormat = event.detail.timestampFormat;
+      }
+      
+      if (this.datetimeInput.value) {
+        this.updateTimestamp();
+      }
+    }
+  }
+
+  /**
+   * Handle changes to settings in storage
+   * @param {Object} changes - The changes to storage
+   * @param {string} areaName - The area of storage that changed
+   */
+  handleSettingsChange(changes, areaName) {
+    if (areaName !== 'sync') return;
+    
+    if (changes.timestampFormat) {
+      this.timestampFormat = changes.timestampFormat.newValue;
+      // Update the displayed timestamp with the new format
+      this.updateTimestamp();
+    }
+  }
+
+  async loadSettings() {
+    const settings = await getDateSettings();
+    this.timestampFormat = settings.timestampFormat;
   }
 
   updateHelperText() {
@@ -15,8 +61,13 @@ export class DateConverter {
       'Time is in UTC' : 'Time is in your local timezone';
   }
 
-  updateTimestamp() {
+  async updateTimestamp() {
     const datetime = this.datetimeInput.value;
+    if (!datetime) {
+      this.timestampResult.innerHTML = '';
+      return 0;
+    }
+    
     let timestamp;
     
     if (this.timezoneToggle.checked) {
@@ -28,15 +79,26 @@ export class DateConverter {
       timestamp = Math.floor(new Date(datetime).getTime() / 1000);
     }
 
+    // Convert to milliseconds if that format is selected
+    const displayTimestamp = this.timestampFormat === 'milliseconds' ? 
+      timestamp * 1000 : timestamp;
+
     const date = new Date(timestamp * 1000);
     const flagHtml = getLocaleFlag();
+    const timezoneName = getTimezoneName();
     
-    const utcDate = formatDateTime(date, true);
-    const localDate = formatDateTime(date, false);
+    try {
+      const utcDate = await formatDateTime(date, true);
+      const localDate = await formatDateTime(date, false);
 
-    this.timestampResult.innerHTML = `<strong>🕓 Unix Timestamp</strong>\n${timestamp}\n\n<strong>🌐 UTC</strong>\n${utcDate}\n\n<strong>${flagHtml} Local</strong>\n${localDate}`;
-    this.convertButton.textContent = 'Copy Timestamp';
-    return timestamp;
+      this.timestampResult.innerHTML = `<strong>🕓 Unix Timestamp</strong>\n${displayTimestamp}\n\n<strong>🌐 UTC</strong>\n${utcDate}\n\n<strong>${flagHtml} Local: ${timezoneName}</strong>\n${localDate}`;
+      this.convertButton.textContent = 'Copy Timestamp';
+    } catch (error) {
+      console.error('Error updating timestamp:', error);
+      this.timestampResult.innerHTML = '<span style="color: red;">Error formatting date</span>';
+    }
+    
+    return displayTimestamp;
   }
 
   setCurrentDatetime() {

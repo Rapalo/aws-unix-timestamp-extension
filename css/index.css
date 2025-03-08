@@ -1,0 +1,5 @@
+/* Import all CSS files */
+@import 'main.css';
+@import 'toggle.css';
+@import 'tabs.css';
+@import 'components.css'; 
