@@ -21,26 +21,48 @@ A browser extension that makes working with Unix timestamps in AWS Console easie
 
 ## Installation
 
+### From Source
 1. Clone this repository:
-```bash
-git clone https://github.com/Rapalo/aws-unix-timestamp-extension
-```
+   ```bash
+   git clone https://github.com/Rapalo/aws-unix-timestamp-extension
+   ```
 
 2. Install dependencies:
-```bash
-npm install
-```
+   ```bash
+   npm install
+   ```
 
 3. Build the extension:
-```bash
-npm run build
-```
+   ```bash
+   npm run build
+   ```
 
-4. Load the extension in Chrome:
-   - Open Chrome and navigate to `chrome://extensions/`
+4. Load the extension in your browser:
+   
+   **Chrome/Edge:**
+   - Navigate to `chrome://extensions/` or `edge://extensions/`
    - Enable "Developer mode" in the top right
    - Click "Load unpacked"
-   - Select the extension directory
+   - Select the `dist` directory from the cloned repository
+
+   **Firefox:**
+   - Navigate to `about:debugging#/runtime/this-firefox`
+   - Click "Load Temporary Add-on..."
+   - Select the `manifest.json` file from the cloned repository
+
+## Usage
+
+### Popup Interface
+1. Click on the extension icon in your browser toolbar
+2. Enter a Unix timestamp to convert it to a human-readable date
+3. Or enter a date to convert it to a Unix timestamp
+4. Toggle between UTC and local timezone using the buttons
+5. Use the copy button to copy the converted value to your clipboard
+
+### AWS Console Integration
+1. Navigate to AWS DynamoDB tables in your browser
+2. Unix timestamps will be automatically detected and formatted
+3. Hover over formatted timestamps to see additional details
 
 ## Development
 
@@ -64,16 +86,36 @@ npm run build
 ```
 
 ### Building
-The extension uses webpack to bundle its JavaScript files. To build:
+The extension uses webpack to bundle its JavaScript files:
 
 ```bash
+# Development build with watch mode
+npm run dev
+
+# Production build
 npm run build
 ```
 
+### Browser Compatibility
+- Chrome: 88+
+- Edge: 88+
+- Firefox: 86+
+- Opera: 74+
+
 ## Testing
-Load the extension in Chrome and:
-1. Click the extension icon to test the popup interface
-2. Visit AWS Console's DynamoDB tables to test the timestamp formatting
+1. Load the extension in your browser
+2. Click the extension icon to test the popup interface
+3. Visit AWS Console's DynamoDB tables to test the timestamp formatting
+4. Verify that timestamps are correctly detected and formatted
+
+## Troubleshooting
+
+### Common Issues
+- If timestamps aren't being detected, refresh the AWS Console page
+- If the popup isn't working correctly, try reloading the extension
+
+### Reporting Bugs
+Please report any bugs or issues on the [GitHub Issues page](https://github.com/Rapalo/aws-unix-timestamp-extension/issues).
 
 ## Contributing
 
