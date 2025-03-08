@@ -106,7 +106,8 @@ function getLocaleFlag() {
 let userSettings = {
   dateFormat: 'default',
   timestampFormat: 'seconds',
-  detectTimestamps: true
+  detectTimestamps: true,
+  showTooltipInEditMode: true
 };
 
 // Load settings when script initializes
@@ -114,7 +115,8 @@ function loadSettings() {
   chrome.storage.sync.get({
     dateFormat: 'default',
     timestampFormat: 'seconds',
-    detectTimestamps: true
+    detectTimestamps: true,
+    showTooltipInEditMode: true
   }, (settings) => {
     userSettings = settings;
     
@@ -133,6 +135,7 @@ function loadSettings() {
 chrome.runtime.onMessage.addListener((message, sender, sendResponse) => {
   if (message.action === 'settingsUpdated') {
     const oldDetectTimestamps = userSettings.detectTimestamps;
+    const oldShowTooltipInEditMode = userSettings.showTooltipInEditMode;
     userSettings = message.settings;
     
     // Apply settings changes immediately
@@ -143,9 +146,43 @@ chrome.runtime.onMessage.addListener((message, sender, sendResponse) => {
       if (!oldDetectTimestamps) {
         setupMutationObserver();
       }
-    } else if (oldDetectTimestamps && window.timestampObserver) {
-      window.timestampObserver.disconnect();
-      window.timestampObserver = null;
+    } else if (oldDetectTimestamps) {
+      // Disconnect all observers
+      if (window.timestampObserver) {
+        window.timestampObserver.disconnect();
+        window.timestampObserver = null;
+      }
+      
+      if (window.inputObserver) {
+        window.inputObserver.disconnect();
+        window.inputObserver = null;
+      }
+    }
+    
+    // Handle changes to the showTooltipInEditMode setting
+    if (oldShowTooltipInEditMode !== userSettings.showTooltipInEditMode) {
+      // Find all processed timestamp elements in edit mode
+      const editModeElements = document.querySelectorAll(`
+        input[data-timestamp-processed], 
+        .awsui-modal-dialog [data-timestamp-processed],
+        .awsui-table-editable-cell [data-timestamp-processed],
+        .awsui-form-field-control-input-container [data-timestamp-processed]
+      `);
+      
+      editModeElements.forEach(element => {
+        // Remove existing event listeners
+        element.removeEventListener('mouseenter', handleMouseEnter);
+        element.removeEventListener('mouseleave', handleMouseLeave);
+        
+        // Update cursor style and add event listeners if tooltips are enabled for edit mode
+        if (userSettings.showTooltipInEditMode) {
+          element.style.cursor = 'help';
+          element.addEventListener('mouseenter', handleMouseEnter);
+          element.addEventListener('mouseleave', handleMouseLeave);
+        } else {
+          element.style.cursor = 'text'; // Use text cursor for edit mode when tooltips are disabled
+        }
+      });
     }
   }
   
@@ -199,6 +236,18 @@ style.textContent = `
   .timestamp-tooltip.visible {
     opacity: 1;
   }
+  
+  /* Styles for input fields with timestamps */
+  input[data-timestamp-processed], 
+  span.awsui-input-value[data-timestamp-processed] {
+    text-decoration: underline dotted;
+    cursor: help;
+  }
+  
+  /* Ensure tooltip appears above modal dialogs */
+  .awsui-modal-dialog {
+    z-index: 9999;
+  }
 `;
 document.head.appendChild(style);
 
@@ -206,6 +255,16 @@ document.head.appendChild(style);
 const tooltip = document.createElement('div');
 tooltip.className = 'timestamp-tooltip';
 document.body.appendChild(tooltip);
+
+// Named event handler functions for tooltip
+function handleMouseEnter(event) {
+  const element = event.target;
+  showTooltip(element, element.getAttribute('data-timestamp-content'));
+}
+
+function handleMouseLeave() {
+  hideTooltip();
+}
 
 function showTooltip(element, content) {
   const rect = element.getBoundingClientRect();
@@ -255,39 +314,140 @@ function hideTooltip() {
 }
 
 function enhanceDynamoDBTable() {
-  const elements = document.querySelectorAll('td:not([data-timestamp-processed])');
+  // Process table cells (existing functionality)
+  const tableElements = document.querySelectorAll('td:not([data-timestamp-processed])');
   
-  elements.forEach(element => {
-    const text = element.textContent.trim();
+  tableElements.forEach(element => {
+    processTimestampElement(element);
+  });
+  
+  // Process input fields and form elements (new functionality)
+  // Target AWS UI components in both view and edit modes
+  const editElements = document.querySelectorAll(`
+    input:not([data-timestamp-processed]), 
+    span.awsui-input-value:not([data-timestamp-processed]),
+    .awsui-form-field:not([data-timestamp-processed]),
+    .awsui-value-large:not([data-timestamp-processed]),
+    .awsui-form-field-control-input-container input:not([data-timestamp-processed]),
+    .awsui-table-editable-cell-value:not([data-timestamp-processed])
+  `);
+  
+  editElements.forEach(element => {
+    processTimestampElement(element);
+  });
+  
+  // Process modal dialog content
+  const modalElements = document.querySelectorAll('.awsui-modal-content [data-dynamodb-field-value]:not([data-timestamp-processed])');
+  
+  modalElements.forEach(element => {
+    processTimestampElement(element);
+  });
+}
+
+// New helper function to process timestamp elements
+function processTimestampElement(element) {
+  const text = element.textContent?.trim() || element.value?.trim();
+  
+  if (!text) return;
+  
+  // Check for timestamps in the format specified by user settings
+  let timestamp = null;
+  
+  if (/^\d{10}$/.test(text)) {
+    // 10-digit (seconds) timestamp
+    timestamp = parseInt(text);
+  } else if (/^\d{13}$/.test(text)) {
+    // 13-digit (milliseconds) timestamp
+    timestamp = Math.floor(parseInt(text) / 1000);
+  }
+  
+  if (timestamp !== null) {
+    // Check if we're in edit mode
+    const isEditMode = element.tagName === 'INPUT' || 
+                      element.closest('.awsui-modal-dialog') !== null ||
+                      element.closest('.awsui-table-editable-cell') !== null ||
+                      element.closest('.awsui-form-field-control-input-container') !== null;
     
-    // Check for timestamps in the format specified by user settings
-    let timestamp = null;
-    
-    if (/^\d{10}$/.test(text)) {
-      // 10-digit (seconds) timestamp
-      timestamp = parseInt(text);
-    } else if (/^\d{13}$/.test(text)) {
-      // 13-digit (milliseconds) timestamp
-      timestamp = Math.floor(parseInt(text) / 1000);
-    }
-    
-    if (timestamp !== null) {
-      // Await the Promise returned by convertTimestampToDate
-      convertTimestampToDate(timestamp).then(date => {
-        element.setAttribute('data-timestamp-processed', 'true');
-        element.setAttribute('data-timestamp-content', date);
-        element.style.textDecoration = 'underline dotted';
+    // Await the Promise returned by convertTimestampToDate
+    convertTimestampToDate(timestamp).then(date => {
+      element.setAttribute('data-timestamp-processed', 'true');
+      element.setAttribute('data-timestamp-content', date);
+      element.style.textDecoration = 'underline dotted';
+      
+      // Only set cursor to help if tooltips are enabled for this element
+      if (!isEditMode || userSettings.showTooltipInEditMode) {
+        element.style.cursor = 'help';
+      } else {
+        element.style.cursor = 'text'; // Use text cursor for edit mode when tooltips are disabled
+      }
+      
+      // Only add tooltip event listeners if not in edit mode or if tooltips are enabled for edit mode
+      if (!isEditMode || userSettings.showTooltipInEditMode) {
+        // Add event listeners for tooltip
+        element.addEventListener('mouseenter', handleMouseEnter);
+        element.addEventListener('mouseleave', handleMouseLeave);
+      }
+      
+      // For input elements, add input event listener to handle changes
+      if (element.tagName === 'INPUT') {
+        if (!element.hasInputListener) {
+          element.addEventListener('input', handleInputChange);
+          element.hasInputListener = true;
+        }
+      }
+    });
+  }
+}
+
+// Handle input changes for timestamp fields
+function handleInputChange(event) {
+  const element = event.target;
+  const newValue = element.value?.trim();
+  
+  if (!newValue) return;
+  
+  // Check if the new value is a timestamp
+  let timestamp = null;
+  
+  if (/^\d{10}$/.test(newValue)) {
+    timestamp = parseInt(newValue);
+  } else if (/^\d{13}$/.test(newValue)) {
+    timestamp = Math.floor(parseInt(newValue) / 1000);
+  }
+  
+  if (timestamp !== null) {
+    // Update the timestamp content
+    convertTimestampToDate(timestamp).then(date => {
+      element.setAttribute('data-timestamp-processed', 'true');
+      element.setAttribute('data-timestamp-content', date);
+      element.style.textDecoration = 'underline dotted';
+      
+      // Set cursor style based on tooltip setting
+      if (userSettings.showTooltipInEditMode) {
         element.style.cursor = 'help';
         
-        // Add event listeners for tooltip
-        element.addEventListener('mouseenter', () => {
-          showTooltip(element, element.getAttribute('data-timestamp-content'));
-        });
+        // Remove existing listeners to avoid duplicates
+        element.removeEventListener('mouseenter', handleMouseEnter);
+        element.removeEventListener('mouseleave', handleMouseLeave);
         
-        element.addEventListener('mouseleave', hideTooltip);
-      });
-    }
-  });
+        // Add event listeners for tooltip
+        element.addEventListener('mouseenter', handleMouseEnter);
+        element.addEventListener('mouseleave', handleMouseLeave);
+      } else {
+        element.style.cursor = 'text';
+      }
+    });
+  } else {
+    // If no longer a timestamp, remove the processing
+    element.removeAttribute('data-timestamp-processed');
+    element.removeAttribute('data-timestamp-content');
+    element.style.textDecoration = '';
+    element.style.cursor = '';
+    
+    // Remove event listeners
+    element.removeEventListener('mouseenter', handleMouseEnter);
+    element.removeEventListener('mouseleave', handleMouseLeave);
+  }
 }
 
 // Setup mutation observer to detect DOM changes
@@ -302,11 +462,28 @@ function setupMutationObserver() {
   
   window.timestampObserver = new MutationObserver(debouncedEnhance);
   
-  // Observe only the main content area if possible
-  const targetNode = document.querySelector('#console-main-content') || document.body;
-  window.timestampObserver.observe(targetNode, { 
-    childList: true, 
-    subtree: true 
+  // Observe both the main content area and any modal dialogs
+  const targetNodes = [
+    document.querySelector('#console-main-content') || document.body,
+    ...Array.from(document.querySelectorAll('.awsui-modal-dialog, .awsui-modal-content'))
+  ].filter(Boolean);
+  
+  targetNodes.forEach(node => {
+    window.timestampObserver.observe(node, { 
+      childList: true, 
+      subtree: true 
+    });
+  });
+  
+  // Also observe attribute changes for input values
+  const inputObserver = new MutationObserver(debouncedEnhance);
+  window.inputObserver = inputObserver;
+  
+  document.querySelectorAll('input, .awsui-input-value').forEach(input => {
+    inputObserver.observe(input, {
+      attributes: true,
+      attributeFilter: ['value']
+    });
   });
 }
 

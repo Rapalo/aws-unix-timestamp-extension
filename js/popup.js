@@ -20,7 +20,8 @@ document.addEventListener('DOMContentLoaded', function() {
   const settingsElements = {
     dateFormat: document.getElementById('dateFormat'),
     timestampFormat: document.getElementById('timestampFormat'),
-    detectTimestampsToggle: document.getElementById('detectTimestampsToggle')
+    detectTimestampsToggle: document.getElementById('detectTimestampsToggle'),
+    showTooltipInEditModeToggle: document.getElementById('showTooltipInEditModeToggle')
   };
 
   // Get DOM elements for tabs
@@ -70,7 +71,8 @@ document.addEventListener('DOMContentLoaded', function() {
     settingsElements.dateFormat,
     settingsElements.timestampFormat,
     settingsElements.detectTimestampsToggle,
-    null // No save button needed
+    null, // No save button needed
+    settingsElements.showTooltipInEditModeToggle
   );
 
   // Set up event listeners for tools

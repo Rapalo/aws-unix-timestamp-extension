@@ -2,16 +2,18 @@
  * Manages user settings for the extension
  */
 export class SettingsManager {
-  constructor(dateFormatSelect, timestampFormatSelect, detectTimestampsToggle, saveButton) {
+  constructor(dateFormatSelect, timestampFormatSelect, detectTimestampsToggle, saveButton, showTooltipInEditModeToggle) {
     this.dateFormatSelect = dateFormatSelect;
     this.timestampFormatSelect = timestampFormatSelect;
     this.detectTimestampsToggle = detectTimestampsToggle;
+    this.showTooltipInEditModeToggle = showTooltipInEditModeToggle;
     
     // Default settings
     this.defaultSettings = {
       dateFormat: 'default',
       timestampFormat: 'seconds',
-      detectTimestamps: true
+      detectTimestamps: true,
+      showTooltipInEditMode: true
     };
     
     // Create a custom event for settings changes
@@ -28,6 +30,9 @@ export class SettingsManager {
     this.dateFormatSelect.addEventListener('change', () => this.saveSettings());
     this.timestampFormatSelect.addEventListener('change', () => this.saveSettings());
     this.detectTimestampsToggle.addEventListener('change', () => this.saveSettings());
+    if (this.showTooltipInEditModeToggle) {
+      this.showTooltipInEditModeToggle.addEventListener('change', () => this.saveSettings());
+    }
   }
 
   /**
@@ -38,6 +43,9 @@ export class SettingsManager {
       this.dateFormatSelect.value = settings.dateFormat;
       this.timestampFormatSelect.value = settings.timestampFormat;
       this.detectTimestampsToggle.checked = settings.detectTimestamps;
+      if (this.showTooltipInEditModeToggle) {
+        this.showTooltipInEditModeToggle.checked = settings.showTooltipInEditMode;
+      }
     });
   }
 
@@ -48,7 +56,8 @@ export class SettingsManager {
     const settings = {
       dateFormat: this.dateFormatSelect.value,
       timestampFormat: this.timestampFormatSelect.value,
-      detectTimestamps: this.detectTimestampsToggle.checked
+      detectTimestamps: this.detectTimestampsToggle.checked,
+      showTooltipInEditMode: this.showTooltipInEditModeToggle ? this.showTooltipInEditModeToggle.checked : true
     };
     
     chrome.storage.sync.set(settings, () => {
