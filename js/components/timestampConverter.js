@@ -19,7 +19,7 @@ export class TimestampConverter {
    */
   handleSettingsChangedEvent(event) {
     if (this.timestampInput.value) {
-      this.convert();
+      this.convert().catch(err => console.error('Error converting timestamp:', err));
     }
   }
 
@@ -33,7 +33,7 @@ export class TimestampConverter {
     
     if (changes.dateFormat && this.timestampInput.value) {
       // Update the displayed date with the new format
-      this.convert();
+      this.convert().catch(err => console.error('Error converting timestamp:', err));
     }
   }
 
@@ -61,6 +61,6 @@ export class TimestampConverter {
 
   setCurrentTimestamp() {
     this.timestampInput.value = Math.floor(Date.now() / 1000);
-    this.convert();
+    this.convert().catch(err => console.error('Error converting timestamp:', err));
   }
 } 

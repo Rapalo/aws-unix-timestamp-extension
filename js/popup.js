@@ -21,7 +21,8 @@ document.addEventListener('DOMContentLoaded', function() {
     dateFormat: document.getElementById('dateFormat'),
     timestampFormat: document.getElementById('timestampFormat'),
     detectTimestampsToggle: document.getElementById('detectTimestampsToggle'),
-    showTooltipInEditModeToggle: document.getElementById('showTooltipInEditModeToggle')
+    showTooltipInEditModeToggle: document.getElementById('showTooltipInEditModeToggle'),
+    showTimeDifferenceToggle: document.getElementById('showTimeDifferenceToggle')
   };
 
   // Get DOM elements for tabs
@@ -72,7 +73,8 @@ document.addEventListener('DOMContentLoaded', function() {
     settingsElements.timestampFormat,
     settingsElements.detectTimestampsToggle,
     null, // No save button needed
-    settingsElements.showTooltipInEditModeToggle
+    settingsElements.showTooltipInEditModeToggle,
+    settingsElements.showTimeDifferenceToggle
   );
 
   // Set up event listeners for tools
@@ -83,16 +85,16 @@ document.addEventListener('DOMContentLoaded', function() {
     dateConverter.setCurrentDatetime());
   
   elements.timestampInput.addEventListener('input', () => 
-    timestampConverter.convert());
+    timestampConverter.convert().catch(err => console.error('Error converting timestamp:', err)));
   
   elements.timezoneToggle.addEventListener('change', () => 
     dateConverter.handleTimezoneToggle());
   
   elements.datetimeInput.addEventListener('input', () => 
-    dateConverter.updateTimestamp());
+    dateConverter.updateTimestamp().catch(err => console.error('Error updating timestamp:', err)));
   
   elements.convertButton.addEventListener('click', async () => {
-    const timestamp = dateConverter.updateTimestamp();
+    const timestamp = await dateConverter.updateTimestamp();
     await navigator.clipboard.writeText(timestamp);
     
     const originalText = elements.convertButton.textContent;

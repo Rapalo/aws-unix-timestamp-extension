@@ -223,4 +223,94 @@ export function convertDateTime(datetime, toUTC) {
       return '';
     }
   }
+}
+
+/**
+ * Formats the time difference between a timestamp and the current time
+ * @param {number} timestamp - Unix timestamp in seconds
+ * @returns {string} Human-readable time difference (e.g., "2 hours ago", "in 5 days")
+ */
+export function formatTimeDifference(timestamp) {
+  const now = Math.floor(Date.now() / 1000);
+  const diffSeconds = timestamp - now;
+  const isInFuture = diffSeconds > 0;
+  const absDiff = Math.abs(diffSeconds);
+  
+  // Time units in seconds
+  const MINUTE = 60;
+  const HOUR = MINUTE * 60;
+  const DAY = HOUR * 24;
+  const WEEK = DAY * 7;
+  const MONTH = DAY * 30; // Approximate
+  const YEAR = DAY * 365; // Approximate
+  
+  let result = '';
+  
+  if (absDiff < MINUTE) {
+    // Less than a minute
+    result = 'just now';
+  } else if (absDiff < HOUR) {
+    // Less than an hour
+    const minutes = Math.floor(absDiff / MINUTE);
+    result = `${minutes} ${minutes === 1 ? 'minute' : 'minutes'}`;
+  } else if (absDiff < DAY) {
+    // Less than a day
+    const hours = Math.floor(absDiff / HOUR);
+    const remainingMinutes = Math.floor((absDiff % HOUR) / MINUTE);
+    
+    if (remainingMinutes === 0) {
+      result = `${hours} ${hours === 1 ? 'hour' : 'hours'}`;
+    } else {
+      result = `${hours} ${hours === 1 ? 'hour' : 'hours'} ${remainingMinutes} ${remainingMinutes === 1 ? 'minute' : 'minutes'}`;
+    }
+  } else if (absDiff < WEEK) {
+    // Less than a week
+    const days = Math.floor(absDiff / DAY);
+    const remainingHours = Math.floor((absDiff % DAY) / HOUR);
+    
+    if (remainingHours === 0) {
+      result = `${days} ${days === 1 ? 'day' : 'days'}`;
+    } else {
+      result = `${days} ${days === 1 ? 'day' : 'days'} ${remainingHours} ${remainingHours === 1 ? 'hour' : 'hours'}`;
+    }
+  } else if (absDiff < MONTH) {
+    // Less than a month
+    const weeks = Math.floor(absDiff / WEEK);
+    const remainingDays = Math.floor((absDiff % WEEK) / DAY);
+    
+    if (remainingDays === 0) {
+      result = `${weeks} ${weeks === 1 ? 'week' : 'weeks'}`;
+    } else {
+      result = `${weeks} ${weeks === 1 ? 'week' : 'weeks'} ${remainingDays} ${remainingDays === 1 ? 'day' : 'days'}`;
+    }
+  } else if (absDiff < YEAR) {
+    // Less than a year
+    const months = Math.floor(absDiff / MONTH);
+    const remainingDays = Math.floor((absDiff % MONTH) / DAY);
+    
+    if (remainingDays === 0) {
+      result = `${months} ${months === 1 ? 'month' : 'months'}`;
+    } else {
+      result = `${months} ${months === 1 ? 'month' : 'months'} ${remainingDays} ${remainingDays === 1 ? 'day' : 'days'}`;
+    }
+  } else {
+    // More than a year
+    const years = Math.floor(absDiff / YEAR);
+    const remainingMonths = Math.floor((absDiff % YEAR) / MONTH);
+    
+    if (remainingMonths === 0) {
+      result = `${years} ${years === 1 ? 'year' : 'years'}`;
+    } else {
+      result = `${years} ${years === 1 ? 'year' : 'years'} ${remainingMonths} ${remainingMonths === 1 ? 'month' : 'months'}`;
+    }
+  }
+  
+  // Add prefix/suffix based on whether the time is in the future or past
+  if (result === 'just now') {
+    return result;
+  } else if (isInFuture) {
+    return `in ${result}`;
+  } else {
+    return `${result} ago`;
+  }
 } 

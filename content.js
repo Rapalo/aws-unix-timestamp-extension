@@ -1,4 +1,4 @@
-import { formatDateTime, getTimezoneName } from './js/utils/dateUtils.js';
+import { formatDateTime, getTimezoneName, formatTimeDifference } from './js/utils/dateUtils.js';
 
 // Inline the flag utils functionality
 const FLAG_BASE_URL = 'http://purecatamphetamine.github.io/country-flag-icons/3x2/';
@@ -107,7 +107,8 @@ let userSettings = {
   dateFormat: 'default',
   timestampFormat: 'seconds',
   detectTimestamps: true,
-  showTooltipInEditMode: true
+  showTooltipInEditMode: true,
+  showTimeDifference: true
 };
 
 // Load settings when script initializes
@@ -116,7 +117,8 @@ function loadSettings() {
     dateFormat: 'default',
     timestampFormat: 'seconds',
     detectTimestamps: true,
-    showTooltipInEditMode: true
+    showTooltipInEditMode: true,
+    showTimeDifference: true
   }, (settings) => {
     userSettings = settings;
     
@@ -200,8 +202,16 @@ async function convertTimestampToDate(timestamp) {
 
   const utcDate = await formatDateTime(date, true, userSettings.dateFormat);
   const localDate = await formatDateTime(date, false, userSettings.dateFormat);
+  
+  let tooltipContent = `<strong>🌐 UTC</strong>\n${utcDate}\n\n<strong>${flagHtml} Local: ${timezoneName}</strong>\n${localDate}`;
+  
+  // Add time difference if enabled
+  if (userSettings.showTimeDifference) {
+    const timeDiff = formatTimeDifference(timestamp);
+    tooltipContent += `\n\n<strong>⏱️ Time Difference</strong>\n${timeDiff}`;
+  }
 
-  return `<strong>🌐 UTC</strong>\n${utcDate}\n\n<strong>${flagHtml} Local: ${timezoneName}</strong>\n${localDate}`;
+  return tooltipContent;
 }
 
 // Debounce function
@@ -259,22 +269,30 @@ const tooltip = document.createElement('div');
 tooltip.className = 'timestamp-tooltip';
 document.body.appendChild(tooltip);
 
+// Timer for updating time difference
+let tooltipUpdateTimer = null;
+let currentTooltipTimestamp = null;
+
 // Named event handler functions for tooltip
 function handleMouseEnter(event) {
   const element = event.target;
-  showTooltip(element, element.getAttribute('data-timestamp-content'));
+  const timestampContent = element.getAttribute('data-timestamp-content');
+  const timestamp = element.getAttribute('data-timestamp-value');
+  
+  showTooltip(element, timestampContent, timestamp);
 }
 
 function handleMouseLeave() {
   hideTooltip();
 }
 
-function showTooltip(element, content) {
+function showTooltip(element, content, timestamp) {
   const rect = element.getBoundingClientRect();
   const windowWidth = window.innerWidth;
   const windowHeight = window.innerHeight;
   
   tooltip.innerHTML = content;
+  currentTooltipTimestamp = timestamp;
   
   // Make tooltip temporarily visible to get its dimensions
   tooltip.style.visibility = 'hidden';
@@ -310,10 +328,45 @@ function showTooltip(element, content) {
   
   // Make tooltip visible again
   tooltip.style.visibility = 'visible';
+  
+  // Set up timer to update time difference if enabled
+  if (userSettings.showTimeDifference && currentTooltipTimestamp) {
+    // Clear any existing timer
+    if (tooltipUpdateTimer) {
+      clearInterval(tooltipUpdateTimer);
+    }
+    
+    // Update time difference every second
+    tooltipUpdateTimer = setInterval(() => {
+      if (!tooltip.classList.contains('visible')) {
+        clearInterval(tooltipUpdateTimer);
+        tooltipUpdateTimer = null;
+        return;
+      }
+      
+      // Find and update only the time difference part
+      const timeDiffRegex = /<strong>⏱️ Time Difference<\/strong>\n(.*?)(?=<\/div>|$)/s;
+      const newTimeDiff = formatTimeDifference(parseInt(currentTooltipTimestamp));
+      
+      const updatedContent = tooltip.innerHTML.replace(
+        timeDiffRegex, 
+        `<strong>⏱️ Time Difference</strong>\n${newTimeDiff}`
+      );
+      
+      tooltip.innerHTML = updatedContent;
+    }, 1000);
+  }
 }
 
 function hideTooltip() {
   tooltip.classList.remove('visible');
+  
+  // Clear update timer when tooltip is hidden
+  if (tooltipUpdateTimer) {
+    clearInterval(tooltipUpdateTimer);
+    tooltipUpdateTimer = null;
+    currentTooltipTimestamp = null;
+  }
 }
 
 function enhanceDynamoDBTable() {
@@ -375,6 +428,7 @@ function processTimestampElement(element) {
     convertTimestampToDate(timestamp).then(date => {
       element.setAttribute('data-timestamp-processed', 'true');
       element.setAttribute('data-timestamp-content', date);
+      element.setAttribute('data-timestamp-value', timestamp.toString());
       element.style.textDecoration = 'underline dotted';
       
       // Only set cursor to help if tooltips are enabled for this element
@@ -423,6 +477,7 @@ function handleInputChange(event) {
     convertTimestampToDate(timestamp).then(date => {
       element.setAttribute('data-timestamp-processed', 'true');
       element.setAttribute('data-timestamp-content', date);
+      element.setAttribute('data-timestamp-value', timestamp.toString());
       element.style.textDecoration = 'underline dotted';
       
       // Set cursor style based on tooltip setting
@@ -444,6 +499,7 @@ function handleInputChange(event) {
     // If no longer a timestamp, remove the processing
     element.removeAttribute('data-timestamp-processed');
     element.removeAttribute('data-timestamp-content');
+    element.removeAttribute('data-timestamp-value');
     element.style.textDecoration = '';
     element.style.cursor = '';
     

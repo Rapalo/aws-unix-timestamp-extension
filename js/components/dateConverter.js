@@ -38,7 +38,8 @@ export class DateConverter {
       }
       
       if (this.datetimeInput.value) {
-        this.updateTimestamp();
+        // Use Promise handling instead of await since this isn't an async function
+        this.updateTimestamp().catch(err => console.error('Error updating timestamp:', err));
       }
     }
   }
@@ -54,7 +55,7 @@ export class DateConverter {
     if (changes.timestampFormat) {
       this.timestampFormat = changes.timestampFormat.newValue;
       // Update the displayed timestamp with the new format
-      this.updateTimestamp();
+      this.updateTimestamp().catch(err => console.error('Error updating timestamp:', err));
     }
     
     // Update timezone toggle if it changed in storage
@@ -132,7 +133,7 @@ export class DateConverter {
   setCurrentDatetime() {
     // Get the current datetime in the correct timezone format
     this.datetimeInput.value = getCurrentDateTime(this.timezoneToggle.checked);
-    this.updateTimestamp();
+    this.updateTimestamp().catch(err => console.error('Error updating timestamp:', err));
   }
 
   handleTimezoneToggle() {
@@ -163,7 +164,7 @@ export class DateConverter {
         
         this.datetimeInput.value = `${localYear}-${localMonth}-${localDay}T${localHours}:${localMinutes}`;
       }
-      this.updateTimestamp();
+      this.updateTimestamp().catch(err => console.error('Error updating timestamp:', err));
     } else {
       // If no current value, set to current datetime in the correct timezone
       this.setCurrentDatetime();
