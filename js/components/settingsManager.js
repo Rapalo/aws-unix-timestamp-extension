@@ -2,12 +2,13 @@
  * Manages user settings for the extension
  */
 export class SettingsManager {
-  constructor(dateFormatSelect, timestampFormatSelect, detectTimestampsToggle, saveButton, showTooltipInEditModeToggle, showTimeDifferenceToggle) {
+  constructor(dateFormatSelect, timestampFormatSelect, detectTimestampsToggle, saveButton, showTooltipInEditModeToggle, showTimeDifferenceToggle, showTimeDifferenceInToolsToggle) {
     this.dateFormatSelect = dateFormatSelect;
     this.timestampFormatSelect = timestampFormatSelect;
     this.detectTimestampsToggle = detectTimestampsToggle;
     this.showTooltipInEditModeToggle = showTooltipInEditModeToggle;
     this.showTimeDifferenceToggle = showTimeDifferenceToggle;
+    this.showTimeDifferenceInToolsToggle = showTimeDifferenceInToolsToggle;
     
     // Default settings
     this.defaultSettings = {
@@ -16,6 +17,7 @@ export class SettingsManager {
       detectTimestamps: true,
       showTooltipInEditMode: true,
       showTimeDifference: true,
+      showTimeDifferenceInTools: false,
       useUtcTime: false
     };
     
@@ -39,6 +41,9 @@ export class SettingsManager {
     if (this.showTimeDifferenceToggle) {
       this.showTimeDifferenceToggle.addEventListener('change', () => this.saveSettings());
     }
+    if (this.showTimeDifferenceInToolsToggle) {
+      this.showTimeDifferenceInToolsToggle.addEventListener('change', () => this.saveSettings());
+    }
   }
 
   /**
@@ -55,6 +60,9 @@ export class SettingsManager {
       if (this.showTimeDifferenceToggle) {
         this.showTimeDifferenceToggle.checked = settings.showTimeDifference;
       }
+      if (this.showTimeDifferenceInToolsToggle) {
+        this.showTimeDifferenceInToolsToggle.checked = settings.showTimeDifferenceInTools;
+      }
     });
   }
 
@@ -70,6 +78,7 @@ export class SettingsManager {
         detectTimestamps: this.detectTimestampsToggle.checked,
         showTooltipInEditMode: this.showTooltipInEditModeToggle ? this.showTooltipInEditModeToggle.checked : true,
         showTimeDifference: this.showTimeDifferenceToggle ? this.showTimeDifferenceToggle.checked : true,
+        showTimeDifferenceInTools: this.showTimeDifferenceInToolsToggle ? this.showTimeDifferenceInToolsToggle.checked : false,
         useUtcTime: result.useUtcTime // Preserve the UTC Time toggle state
       };
       

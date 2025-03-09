@@ -203,12 +203,12 @@ async function convertTimestampToDate(timestamp) {
   const utcDate = await formatDateTime(date, true, userSettings.dateFormat);
   const localDate = await formatDateTime(date, false, userSettings.dateFormat);
   
-  let tooltipContent = `<strong>🌐 UTC</strong>\n${utcDate}\n\n<strong>${flagHtml} Local: ${timezoneName}</strong>\n${localDate}`;
+  let tooltipContent = `<span class="timestamp-badge">🌍 UTC</span>\n${utcDate}\n\n<span class="timestamp-badge">${flagHtml} Local: ${timezoneName}</span>\n${localDate}`;
   
   // Add time difference if enabled
   if (userSettings.showTimeDifference) {
     const timeDiff = formatTimeDifference(timestamp);
-    tooltipContent += `\n\n<strong>⏱️ Time Difference</strong>\n${timeDiff}`;
+    tooltipContent += `\n\n<strong>⏱️ ${timeDiff}</strong>`;
   }
 
   return tooltipContent;
@@ -234,7 +234,7 @@ style.textContent = `
     position: fixed;
     background: #232f3e;
     color: white;
-    padding: 8px 12px;
+    padding: 12px;
     border-radius: 4px;
     font-family: monospace;
     font-size: 13px;
@@ -243,11 +243,20 @@ style.textContent = `
     pointer-events: none;
     opacity: 0;
     transition: opacity 0.1s;
-    box-shadow: 0 2px 8px rgba(0,0,0,0.2);
+    box-shadow: 0 2px 8px rgba(0, 0, 0, 0.2);
     width: 300px;
   }
   .timestamp-tooltip.visible {
     opacity: 1;
+  }
+  
+  .timestamp-badge {
+    display: inline-block;
+    background: hsl(217, 27%, 12%);
+    padding: 2px 4px;
+    border-radius: 3px;
+    margin-left: -2px;
+    margin-bottom: 4px;
   }
   
   /* Styles for input fields with timestamps */
@@ -345,12 +354,12 @@ function showTooltip(element, content, timestamp) {
       }
       
       // Find and update only the time difference part
-      const timeDiffRegex = /<strong>⏱️ Time Difference<\/strong>\n(.*?)(?=<\/div>|$)/s;
+      const timeDiffRegex = /<strong>⏱️ (.*?)<\/strong>/s;
       const newTimeDiff = formatTimeDifference(parseInt(currentTooltipTimestamp));
       
       const updatedContent = tooltip.innerHTML.replace(
         timeDiffRegex, 
-        `<strong>⏱️ Time Difference</strong>\n${newTimeDiff}`
+        `<strong>⏱️ ${newTimeDiff}</strong>`
       );
       
       tooltip.innerHTML = updatedContent;

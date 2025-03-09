@@ -1,4 +1,4 @@
-import { formatDateTime, convertDateTime, getCurrentDateTime, getDateSettings, getTimezoneName } from '../utils/dateUtils.js';
+import { formatDateTime, convertDateTime, getCurrentDateTime, getDateSettings, getTimezoneName, formatTimeDifference } from '../utils/dateUtils.js';
 import { getLocaleFlag } from '../utils/timezoneUtils.js';
 
 export class DateConverter {
@@ -120,7 +120,22 @@ export class DateConverter {
       const utcDate = await formatDateTime(date, true);
       const localDate = await formatDateTime(date, false);
 
-      this.timestampResult.innerHTML = `<strong>🕓 Unix Timestamp</strong>\n${displayTimestamp}\n\n<strong>🌐 UTC</strong>\n${utcDate}\n\n<strong>${flagHtml} Local: ${timezoneName}</strong>\n${localDate}`;
+      // Get settings to check if time difference should be shown
+      const settings = await new Promise(resolve => {
+        chrome.storage.sync.get({
+          showTimeDifferenceInTools: false
+        }, resolve);
+      });
+      
+      let resultHtml = `<span class="timestamp-badge">🕓 Unix Timestamp</span>\n${displayTimestamp}\n\n<span class="timestamp-badge">🌍 UTC</span>\n${utcDate}\n\n<span class="timestamp-badge">${flagHtml} Local: ${timezoneName}</span>\n${localDate}`;
+      
+      // Add time difference if enabled
+      if (settings.showTimeDifferenceInTools) {
+        const timeDiff = formatTimeDifference(timestamp);
+        resultHtml += `\n\n⏱️ ${timeDiff}`;
+      }
+      
+      this.timestampResult.innerHTML = resultHtml;
       this.convertButton.textContent = 'Copy Timestamp';
     } catch (error) {
       console.error('Error updating timestamp:', error);

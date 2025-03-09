@@ -1,4 +1,4 @@
-import { formatDateTime, getTimezoneName } from '../utils/dateUtils.js';
+import { formatDateTime, getTimezoneName, formatTimeDifference } from '../utils/dateUtils.js';
 import { getLocaleFlag } from '../utils/timezoneUtils.js';
 
 export class TimestampConverter {
@@ -31,7 +31,7 @@ export class TimestampConverter {
   handleSettingsChange(changes, areaName) {
     if (areaName !== 'sync') return;
     
-    if (changes.dateFormat && this.timestampInput.value) {
+    if ((changes.dateFormat || changes.showTimeDifferenceInTools) && this.timestampInput.value) {
       // Update the displayed date with the new format
       this.convert().catch(err => console.error('Error converting timestamp:', err));
     }
@@ -52,7 +52,22 @@ export class TimestampConverter {
       const utcDate = await formatDateTime(date, true);
       const localDate = await formatDateTime(date, false);
       
-      this.dateResult.innerHTML = `<strong>🌐 UTC</strong>\n${utcDate}\n\n<strong>${flagHtml} Local: ${timezoneName}</strong>\n${localDate}`;
+      // Get settings to check if time difference should be shown
+      const settings = await new Promise(resolve => {
+        chrome.storage.sync.get({
+          showTimeDifferenceInTools: false
+        }, resolve);
+      });
+      
+      let resultHtml = `<span class="timestamp-badge">🌍 UTC</span>\n${utcDate}\n\n<span class="timestamp-badge">${flagHtml} Local: ${timezoneName}</span>\n${localDate}`;
+      
+      // Add time difference if enabled
+      if (settings.showTimeDifferenceInTools) {
+        const timeDiff = formatTimeDifference(parseInt(timestamp));
+        resultHtml += `\n\n⏱️ ${timeDiff}`;
+      }
+      
+      this.dateResult.innerHTML = resultHtml;
     } catch (error) {
       console.error('Error formatting date:', error);
       this.dateResult.innerHTML = '<span style="color: red;">Error formatting date</span>';
